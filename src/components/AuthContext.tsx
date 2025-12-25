@@ -4,7 +4,7 @@ import useIsBrowser from "@docusaurus/useIsBrowser";
 import { JSX } from "react/jsx-runtime";
 
 // API Configuration
-const API_URL = "hackathon1-aibook-backend-production.up.railway.app/api";
+const API_URL = "https://hackathon1-aibook-backend-production.up.railway.app/";
 const API_KEY = "backend123";
 // Helper function for mobile-friendly fetch with timeout
 async function fetchWithTimeout(
