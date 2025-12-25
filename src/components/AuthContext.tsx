@@ -1,11 +1,11 @@
 // src\components\AuthContext.tsx
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
-import useIsBrowser from '@docusaurus/useIsBrowser';
-import { JSX } from 'react/jsx-runtime';
+import React, { createContext, useState, useEffect, ReactNode } from "react";
+import useIsBrowser from "@docusaurus/useIsBrowser";
+import { JSX } from "react/jsx-runtime";
 
 // API Configuration
-const API_URL = 'https://ai-rative-book-backend-production.up.railway.app/api';
-
+const API_URL = "hackathon1-aibook-backend-production.up.railway.app/api";
+const API_KEY = "backend123";
 // Helper function for mobile-friendly fetch with timeout
 async function fetchWithTimeout(
   url: string,
@@ -14,23 +14,27 @@ async function fetchWithTimeout(
 ): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
-  
+
   try {
     const response = await fetch(url, {
       ...options,
       signal: controller.signal,
-      mode: 'cors',
-      credentials: 'omit',
+      mode: "cors",
+      credentials: "omit",
     });
     clearTimeout(timeoutId);
     return response;
   } catch (err) {
     clearTimeout(timeoutId);
-    if (err instanceof Error && err.name === 'AbortError') {
-      throw new Error('Request timed out. Please try again.');
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error("Request timed out. Please try again.");
     }
-    if (err instanceof Error && (err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
-      throw new Error('Network error. Please check your connection.');
+    if (
+      err instanceof Error &&
+      (err.message.includes("Failed to fetch") ||
+        err.message.includes("NetworkError"))
+    ) {
+      throw new Error("Network error. Please check your connection.");
     }
     throw err;
   }
@@ -55,7 +59,12 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name: string, background: UserBackground) => Promise<void>;
+  signup: (
+    email: string,
+    password: string,
+    name: string,
+    background: UserBackground
+  ) => Promise<void>;
   logout: () => void;
   updateBackground: (background: UserBackground) => void;
 }
@@ -82,11 +91,11 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
 
   useEffect(() => {
     if (!isBrowser) return;
-    
+
     // Check for existing session
-    const token = localStorage.getItem('physicalai_session_token');
-    const storedUser = localStorage.getItem('physicalai_user');
-    
+    const token = localStorage.getItem("physicalai_session_token");
+    const storedUser = localStorage.getItem("physicalai_user");
+
     if (token && storedUser) {
       setSessionToken(token);
       setUser(JSON.parse(storedUser));
@@ -97,13 +106,13 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
   const login = async (email: string, password: string) => {
     try {
       const response = await fetchWithTimeout(`${API_URL}/auth/signin`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
       if (!response.ok) {
-        let errorMessage = 'Login failed';
+        let errorMessage = "Login failed";
         try {
           const error = await response.json();
           errorMessage = error.detail || error.message || errorMessage;
@@ -114,30 +123,35 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
       }
 
       const data = await response.json();
-      
+
       setUser(data.user);
       setSessionToken(data.session_token);
-      
+
       if (isBrowser) {
-        localStorage.setItem('physicalai_session_token', data.session_token);
-        localStorage.setItem('physicalai_user', JSON.stringify(data.user));
+        localStorage.setItem("physicalai_session_token", data.session_token);
+        localStorage.setItem("physicalai_user", JSON.stringify(data.user));
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
       throw error;
     }
   };
 
-  const signup = async (email: string, password: string, name: string, background: UserBackground) => {
+  const signup = async (
+    email: string,
+    password: string,
+    name: string,
+    background: UserBackground
+  ) => {
     try {
       const response = await fetchWithTimeout(`${API_URL}/auth/signup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, name, background }),
       });
 
       if (!response.ok) {
-        let errorMessage = 'Signup failed';
+        let errorMessage = "Signup failed";
         try {
           const error = await response.json();
           errorMessage = error.detail || error.message || errorMessage;
@@ -148,16 +162,16 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
       }
 
       const data = await response.json();
-      
+
       setUser(data.user);
       setSessionToken(data.session_token);
-      
+
       if (isBrowser) {
-        localStorage.setItem('physicalai_session_token', data.session_token);
-        localStorage.setItem('physicalai_user', JSON.stringify(data.user));
+        localStorage.setItem("physicalai_session_token", data.session_token);
+        localStorage.setItem("physicalai_user", JSON.stringify(data.user));
       }
     } catch (error) {
-      console.error('Signup error:', error);
+      console.error("Signup error:", error);
       throw error;
     }
   };
@@ -165,20 +179,24 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
   const logout = async () => {
     try {
       if (sessionToken) {
-        await fetchWithTimeout(`${API_URL}/auth/signout?session_token=${sessionToken}`, {
-          method: 'POST',
-        }, 10000); // Shorter timeout for logout
+        await fetchWithTimeout(
+          `${API_URL}/auth/signout?session_token=${sessionToken}`,
+          {
+            method: "POST",
+          },
+          10000
+        ); // Shorter timeout for logout
       }
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
     }
-    
+
     setUser(null);
     setSessionToken(null);
-    
+
     if (isBrowser) {
-      localStorage.removeItem('physicalai_session_token');
-      localStorage.removeItem('physicalai_user');
+      localStorage.removeItem("physicalai_session_token");
+      localStorage.removeItem("physicalai_user");
     }
   };
 
@@ -187,7 +205,7 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
       const updatedUser = { ...user, background };
       setUser(updatedUser);
       if (isBrowser) {
-        localStorage.setItem('physicalai_user', JSON.stringify(updatedUser));
+        localStorage.setItem("physicalai_user", JSON.stringify(updatedUser));
       }
     }
   };

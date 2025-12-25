@@ -1,19 +1,19 @@
 // src\components\Chat\ChatPanel.tsx
-import React, { useState, useRef, useEffect, useContext } from 'react';
-import { FiSend, FiX, FiMessageSquare, FiTrash2 } from 'react-icons/fi';
-import ReactMarkdown from 'react-markdown';
-import { useHistory } from '@docusaurus/router';
-import useBaseUrl from '@docusaurus/useBaseUrl';
-import { AuthContext } from '@site/src/components/AuthContext';
-import styles from './ChatPanel.module.css';
+import React, { useState, useRef, useEffect, useContext } from "react";
+import { FiSend, FiX, FiMessageSquare, FiTrash2 } from "react-icons/fi";
+import ReactMarkdown from "react-markdown";
+import { useHistory } from "@docusaurus/router";
+import useBaseUrl from "@docusaurus/useBaseUrl";
+import { AuthContext } from "@site/src/components/AuthContext";
+import styles from "./ChatPanel.module.css";
 
 interface Message {
   id: string;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
   timestamp: Date;
   redirect?: string; // Optional redirect URL
-  redirectStatus?: 'pending' | 'navigating' | 'done'; // Redirect status for UI
+  redirectStatus?: "pending" | "navigating" | "done"; // Redirect status for UI
   isThinking?: boolean;
 }
 
@@ -23,28 +23,25 @@ interface ChatPanelProps {
   selectedText?: string;
 }
 
-type PanelSize = 'small' | 'medium' | 'large';
-
+type PanelSize = "small" | "medium" | "large";
 
 // -------------------------------------------------------------------------
 // API Configuration
-let API_URL = 'https://simple-hackathon-physical-ai-and-humanoid-roboti-production.up.railway.app' ;
+let API_URL = "hackathon1-aibook-backend-production.up.railway.app";
 
 // Agar browser mein 'localhost' likha hai, to Local Backend use karo
-if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-  API_URL = 'http://localhost:8000';
+if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+  API_URL = "http://localhost:8000";
 }
 
-const API_KEY = 'password123';
+const API_KEY = "backend123";
 // -------------------------------------------------------------------------
-
-
 
 // Regex to detect redirect commands in response
 const REDIRECT_REGEX = /\[\[REDIRECT:([^\]]+)\]\]/;
 
 // Session storage key for chat messages
-const CHAT_MESSAGES_KEY = 'physical-ai-chat-messages';
+const CHAT_MESSAGES_KEY = "physical-ai-chat-messages";
 
 // Helper function to make API request with timeout and proper mobile support
 async function fetchWithTimeout(
@@ -54,54 +51,65 @@ async function fetchWithTimeout(
 ): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
-  
+
   try {
     const response = await fetch(url, {
       ...options,
       signal: controller.signal,
-      mode: 'cors', // Explicit CORS mode for mobile browsers
-      credentials: 'omit', // Don't send credentials for CORS
+      mode: "cors", // Explicit CORS mode for mobile browsers
+      credentials: "omit", // Don't send credentials for CORS
     });
     clearTimeout(timeoutId);
-    
+
     if (!response.ok) {
       throw new Error(`Server error: ${response.status}`);
     }
-    
+
     return response;
   } catch (err) {
     clearTimeout(timeoutId);
-    
+
     if (err instanceof Error) {
-      if (err.name === 'AbortError') {
-        throw new Error('Request timed out. Please check your connection and try again.');
+      if (err.name === "AbortError") {
+        throw new Error(
+          "Request timed out. Please check your connection and try again."
+        );
       }
-      if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
-        throw new Error('Network error. Please check your internet connection.');
+      if (
+        err.message.includes("Failed to fetch") ||
+        err.message.includes("NetworkError")
+      ) {
+        throw new Error(
+          "Network error. Please check your internet connection."
+        );
       }
     }
     throw err;
   }
 }
 
-export default function ChatPanel({ isOpen, onClose, selectedText }: ChatPanelProps): React.JSX.Element {
+export default function ChatPanel({
+  isOpen,
+  onClose,
+  selectedText,
+}: ChatPanelProps): React.JSX.Element {
   const { user, isAuthenticated } = useContext(AuthContext);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [panelSize, setPanelSize] = useState<PanelSize>('medium');
+  const [panelSize, setPanelSize] = useState<PanelSize>("medium");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const routerHistory = useHistory();
-  
+
   // Get base URL for proper routing
-  const baseUrl = useBaseUrl('/');
+  const baseUrl = useBaseUrl("/");
 
   // Load messages from session storage on mount
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
+    if (typeof window === "undefined") return;
+
     try {
       const savedMessages = sessionStorage.getItem(CHAT_MESSAGES_KEY);
       if (savedMessages) {
@@ -110,23 +118,24 @@ export default function ChatPanel({ isOpen, onClose, selectedText }: ChatPanelPr
         const restored = parsed.map((m: Message) => ({
           ...m,
           timestamp: new Date(m.timestamp),
-          redirectStatus: m.redirectStatus === 'navigating' ? 'done' : m.redirectStatus,
+          redirectStatus:
+            m.redirectStatus === "navigating" ? "done" : m.redirectStatus,
         }));
         setMessages(restored);
       }
     } catch (e) {
-      console.error('Failed to restore chat messages:', e);
+      console.error("Failed to restore chat messages:", e);
     }
   }, []);
 
   // Save messages to session storage when they change
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
+    if (typeof window === "undefined") return;
+
     try {
       sessionStorage.setItem(CHAT_MESSAGES_KEY, JSON.stringify(messages));
     } catch (e) {
-      console.error('Failed to save chat messages:', e);
+      console.error("Failed to save chat messages:", e);
     }
   }, [messages]);
 
@@ -137,7 +146,7 @@ export default function ChatPanel({ isOpen, onClose, selectedText }: ChatPanelPr
   }, [isOpen]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const sendMessage = async () => {
@@ -145,40 +154,40 @@ export default function ChatPanel({ isOpen, onClose, selectedText }: ChatPanelPr
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      role: 'user',
+      role: "user",
       content: input,
       timestamp: new Date(),
     };
 
     const thinkingMessage: Message = {
       id: `thinking-${Date.now()}`,
-      role: 'assistant',
-      content: 'Thinking...',
+      role: "assistant",
+      content: "Thinking...",
       timestamp: new Date(),
       isThinking: true,
     };
 
-    setMessages(prev => [...prev, userMessage, thinkingMessage]);
-    setInput('');
+    setMessages((prev) => [...prev, userMessage, thinkingMessage]);
+    setInput("");
     setIsLoading(true);
     setError(null);
 
     try {
       const response = await fetchWithTimeout(`${API_URL}/api/chat`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'X-API-Key': API_KEY 
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-Key": API_KEY,
         },
         body: JSON.stringify({
           message: input,
           history: messages
-            .filter(m => !m.isThinking)
-            .map(m => ({
-              user_message: m.role === 'user' ? m.content : '',
-              ai_response: m.role === 'assistant' ? m.content : '',
+            .filter((m) => !m.isThinking)
+            .map((m) => ({
+              user_message: m.role === "user" ? m.content : "",
+              ai_response: m.role === "assistant" ? m.content : "",
             }))
-            .filter(h => h.user_message || h.ai_response),
+            .filter((h) => h.user_message || h.ai_response),
           selected_text: selectedText || null,
         }),
       });
@@ -188,11 +197,11 @@ export default function ChatPanel({ isOpen, onClose, selectedText }: ChatPanelPr
       }
 
       const data = await response.json();
-      
+
       // Replace thinking message with actual response
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === thinkingMessage.id 
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === thinkingMessage.id
             ? {
                 ...msg,
                 id: Date.now().toString(),
@@ -202,29 +211,32 @@ export default function ChatPanel({ isOpen, onClose, selectedText }: ChatPanelPr
             : msg
         )
       );
-
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send message');
+      setError(err instanceof Error ? err.message : "Failed to send message");
       // Remove the thinking message on error
-      setMessages(prev => prev.filter(msg => msg.id !== thinkingMessage.id));
+      setMessages((prev) =>
+        prev.filter((msg) => msg.id !== thinkingMessage.id)
+      );
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   const retryLastMessage = () => {
     // Find the last user message and retry
-    const lastUserMessage = [...messages].reverse().find(m => m.role === 'user');
+    const lastUserMessage = [...messages]
+      .reverse()
+      .find((m) => m.role === "user");
     if (lastUserMessage) {
       setError(null);
       setInput(lastUserMessage.content);
       // Remove the last user message so it can be re-sent
-      setMessages(prev => prev.filter(m => m.id !== lastUserMessage.id));
+      setMessages((prev) => prev.filter((m) => m.id !== lastUserMessage.id));
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
@@ -234,7 +246,7 @@ export default function ChatPanel({ isOpen, onClose, selectedText }: ChatPanelPr
     setMessages([]);
     setError(null);
     // Also clear from session storage
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       sessionStorage.removeItem(CHAT_MESSAGES_KEY);
     }
   };
@@ -249,37 +261,47 @@ export default function ChatPanel({ isOpen, onClose, selectedText }: ChatPanelPr
           <span>AI Assistant</span>
         </div>
         <div className={styles.headerControls}>
-          <button 
-            onClick={() => setPanelSize('small')} 
-            className={`${styles.sizeButton} ${panelSize === 'small' ? styles.active : ''}`}
+          <button
+            onClick={() => setPanelSize("small")}
+            className={`${styles.sizeButton} ${
+              panelSize === "small" ? styles.active : ""
+            }`}
             title="Small view"
           >
             S
           </button>
-          <button 
-            onClick={() => setPanelSize('medium')} 
-            className={`${styles.sizeButton} ${panelSize === 'medium' ? styles.active : ''}`}
+          <button
+            onClick={() => setPanelSize("medium")}
+            className={`${styles.sizeButton} ${
+              panelSize === "medium" ? styles.active : ""
+            }`}
             title="Medium view"
           >
             M
           </button>
-          <button 
-            onClick={() => setPanelSize('large')} 
-            className={`${styles.sizeButton} ${panelSize === 'large' ? styles.active : ''}`}
+          <button
+            onClick={() => setPanelSize("large")}
+            className={`${styles.sizeButton} ${
+              panelSize === "large" ? styles.active : ""
+            }`}
             title="Large view"
           >
             L
           </button>
-          <button 
-            onClick={clearChat} 
-            className={styles.clearButton} 
+          <button
+            onClick={clearChat}
+            className={styles.clearButton}
             aria-label="Clear chat"
             title="Clear chat history"
             disabled={messages.length === 0}
           >
             <FiTrash2 size={14} />
           </button>
-          <button onClick={onClose} className={styles.closeButton} aria-label="Close chat">
+          <button
+            onClick={onClose}
+            className={styles.closeButton}
+            aria-label="Close chat"
+          >
             <FiX />
           </button>
         </div>
@@ -295,38 +317,66 @@ export default function ChatPanel({ isOpen, onClose, selectedText }: ChatPanelPr
         {messages.length === 0 && (
           <div className={styles.welcomeMessage}>
             <h3>Welcome to the Physical AI Assistant!</h3>
-            <p>Ask me anything about ROS 2, Gazebo, NVIDIA Isaac, or humanoid robotics.</p>
-            <div style={{ fontSize: '0.85rem', marginTop: '12px', color: 'var(--ifm-color-emphasis-600)' }}>
-              <p style={{ marginBottom: '6px' }}><strong>💡 Tips:</strong></p>
-              <ul style={{ margin: 0, paddingLeft: '20px', lineHeight: '1.6' }}>
-                <li>Ask for "detailed" or "in-depth" explanations for comprehensive answers</li>
+            <p>
+              Ask me anything about ROS 2, Gazebo, NVIDIA Isaac, or humanoid
+              robotics.
+            </p>
+            <div
+              style={{
+                fontSize: "0.85rem",
+                marginTop: "12px",
+                color: "var(--ifm-color-emphasis-600)",
+              }}
+            >
+              <p style={{ marginBottom: "6px" }}>
+                <strong>💡 Tips:</strong>
+              </p>
+              <ul style={{ margin: 0, paddingLeft: "20px", lineHeight: "1.6" }}>
+                <li>
+                  Ask for "detailed" or "in-depth" explanations for
+                  comprehensive answers
+                </li>
                 <li>Select text on the page for context-aware help</li>
-                <li><strong>🔗 Navigation:</strong> Ask me to find specific content (e.g., "take me to VSLAM", "find kinematics")</li>
-                <li><strong>📍 Highlighting:</strong> I'll highlight the exact section when I redirect you!</li>
+                <li>
+                  <strong>🔗 Navigation:</strong> Ask me to find specific
+                  content (e.g., "take me to VSLAM", "find kinematics")
+                </li>
+                <li>
+                  <strong>📍 Highlighting:</strong> I'll highlight the exact
+                  section when I redirect you!
+                </li>
               </ul>
             </div>
           </div>
         )}
-        
-        {messages.map(message => (
+
+        {messages.map((message) => (
           <div
             key={message.id}
-            className={`${styles.message} ${styles[message.role]} ${message.redirect ? styles.redirectMessage : ''}`}
+            className={`${styles.message} ${styles[message.role]} ${
+              message.redirect ? styles.redirectMessage : ""
+            }`}
           >
             <div className={styles.messageContent}>
-              {message.role === 'assistant' ? (
+              {message.role === "assistant" ? (
                 <>
                   <ReactMarkdown>
-                    {message.content || (isLoading ? 'Thinking...' : '')}
+                    {message.content || (isLoading ? "Thinking..." : "")}
                   </ReactMarkdown>
                   {message.redirect && (
-                    <div className={`${styles.redirectIndicator} ${message.redirectStatus === 'navigating' ? styles.navigating : ''}`}>
-                      {message.redirectStatus === 'navigating' ? (
+                    <div
+                      className={`${styles.redirectIndicator} ${
+                        message.redirectStatus === "navigating"
+                          ? styles.navigating
+                          : ""
+                      }`}
+                    >
+                      {message.redirectStatus === "navigating" ? (
                         <>
                           <span className={styles.redirectSpinner}>⏳</span>
                           <span>Taking you there now...</span>
                         </>
-                      ) : message.redirectStatus === 'done' ? (
+                      ) : message.redirectStatus === "done" ? (
                         <>
                           <span className={styles.redirectIcon}>✅</span>
                           <span>Redirected!</span>
@@ -346,7 +396,7 @@ export default function ChatPanel({ isOpen, onClose, selectedText }: ChatPanelPr
             </div>
           </div>
         ))}
-        
+
         {error && (
           <div className={styles.error}>
             <span>{error}</span>
@@ -356,7 +406,7 @@ export default function ChatPanel({ isOpen, onClose, selectedText }: ChatPanelPr
             </div>
           </div>
         )}
-        
+
         <div ref={messagesEndRef} />
       </div>
 
@@ -364,7 +414,7 @@ export default function ChatPanel({ isOpen, onClose, selectedText }: ChatPanelPr
         <textarea
           ref={inputRef}
           value={input}
-          onChange={e => setInput(e.target.value)}
+          onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Ask about Physical AI..."
           className={styles.input}

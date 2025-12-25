@@ -1,7 +1,7 @@
 // docs/docusaurus.config.ts
-import {themes as prismThemes} from 'prism-react-renderer';
-import type {Config} from '@docusaurus/types';
-import type * as Preset from '@docusaurus/preset-classic';
+import { themes as prismThemes } from "prism-react-renderer";
+import type { Config } from "@docusaurus/types";
+import type * as Preset from "@docusaurus/preset-classic";
 
 const config: Config = {
   title: "Physical AI & Humanoid Robotics",
@@ -32,7 +32,7 @@ const config: Config = {
   customFields: {
     apiUrl:
       process.env.REACT_APP_API_URL ||
-      "https://ai-rative-book-backend-production.up.railway.app",
+      "hackathon1-aibook-backend-production.up.railway.app",
     apiKey: process.env.REACT_APP_API_KEY || "",
   },
 
