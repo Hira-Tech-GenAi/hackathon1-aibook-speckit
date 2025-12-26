@@ -33,7 +33,7 @@ const config: Config = {
     apiUrl:
       process.env.REACT_APP_API_URL ||
       "hackathon1-aibook-backend-production.up.railway.app",
-    apiKey: process.env.REACT_APP_API_KEY || "",
+    apiKey: process.env.REACT_APP_ || "",
   },
 
   presets: [

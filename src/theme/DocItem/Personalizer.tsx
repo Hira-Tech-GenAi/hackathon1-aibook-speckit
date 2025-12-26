@@ -9,7 +9,7 @@ import {
 import styles from "./ContentControls.module.css";
 
 const API_URL = "https://hackathon1-aibook-backend-production.up.railway.app/";
-const API_KEY = "backend123";
+const API_KEY = "hirakhalid1234";
 
 // Cache for personalized content per page + user background
 const personalizationCache = new Map<string, string>();

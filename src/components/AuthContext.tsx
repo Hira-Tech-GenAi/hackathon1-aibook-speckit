@@ -5,7 +5,7 @@ import { JSX } from "react/jsx-runtime";
 
 // API Configuration
 const API_URL = "https://hackathon1-aibook-backend-production.up.railway.app/";
-const API_KEY = "backend123";
+const API_KEY = "hirakhalid1234";
 // Helper function for mobile-friendly fetch with timeout
 async function fetchWithTimeout(
   url: string,

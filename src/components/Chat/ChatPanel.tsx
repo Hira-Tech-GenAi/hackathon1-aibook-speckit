@@ -34,7 +34,7 @@ if (typeof window !== "undefined" && window.location.hostname === "localhost") {
   API_URL = "http://localhost:8000";
 }
 
-const API_KEY = "backend123";
+const API_KEY = "hirakhalid1234";
 // -------------------------------------------------------------------------
 
 // Regex to detect redirect commands in response
