@@ -18,5 +18,6 @@ export function useApiConfig() {
 }
 
 // For use outside React components (fallback values)
-export const API_URL = "hackathon1-aibook-backend-production.up.railway.app";
+export const API_URL =
+  "https://hackathon1-aibook-backend-production.up.railway.app";
 export const API_KEY = "hirakhalid1234";
