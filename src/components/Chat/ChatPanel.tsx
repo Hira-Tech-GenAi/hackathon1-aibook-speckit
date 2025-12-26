@@ -12,8 +12,8 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
-  redirect?: string; // Optional redirect URL
-  redirectStatus?: "pending" | "navigating" | "done"; // Redirect status for UI
+  redirect?: string;
+  redirectStatus?: "pending" | "navigating" | "done";
   isThinking?: boolean;
 }
 
@@ -29,8 +29,11 @@ type PanelSize = "small" | "medium" | "large";
 // API Configuration
 let API_URL = "https://hackathon1-aibook-backend-production.up.railway.app";
 
-// Agar browser mein 'localhost' likha hai, to Local Backend use karo
-if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+// Local development ke liye
+if (
+  typeof window !== "undefined" &&
+  window.location.hostname.includes("localhost")
+) {
   API_URL = "http://localhost:8000";
 }
 
@@ -47,7 +50,7 @@ const CHAT_MESSAGES_KEY = "physical-ai-chat-messages";
 async function fetchWithTimeout(
   url: string,
   options: RequestInit,
-  timeout: number = 60000 // 60 second timeout for mobile networks
+  timeout: number = 60000
 ): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -56,8 +59,8 @@ async function fetchWithTimeout(
     const response = await fetch(url, {
       ...options,
       signal: controller.signal,
-      mode: "cors", // Explicit CORS mode for mobile browsers
-      credentials: "omit", // Don't send credentials for CORS
+      mode: "cors",
+      credentials: "omit",
     });
     clearTimeout(timeoutId);
 
@@ -103,18 +106,16 @@ export default function ChatPanel({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const routerHistory = useHistory();
 
-  // Get base URL for proper routing
   const baseUrl = useBaseUrl("/");
 
-  // Load messages from session storage on mount
+  // Load messages from session storage
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     try {
-      const savedMessages = sessionStorage.getItem(CHAT_MESSAGES_KEY);
-      if (savedMessages) {
-        const parsed = JSON.parse(savedMessages);
-        // Convert timestamp strings back to Date objects and clear redirect status
+      const saved = sessionStorage.getItem(CHAT_MESSAGES_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
         const restored = parsed.map((m: Message) => ({
           ...m,
           timestamp: new Date(m.timestamp),
@@ -128,10 +129,9 @@ export default function ChatPanel({
     }
   }, []);
 
-  // Save messages to session storage when they change
+  // Save messages to session storage
   useEffect(() => {
     if (typeof window === "undefined") return;
-
     try {
       sessionStorage.setItem(CHAT_MESSAGES_KEY, JSON.stringify(messages));
     } catch (e) {
@@ -159,15 +159,15 @@ export default function ChatPanel({
       timestamp: new Date(),
     };
 
-    const thinkingMessage: Message = {
-      id: `thinking-${Date.now()}`,
+    const assistantMessageId = `assistant-${Date.now()}`;
+    const assistantMessage: Message = {
+      id: assistantMessageId,
       role: "assistant",
-      content: "Thinking...",
+      content: "",
       timestamp: new Date(),
-      isThinking: true,
     };
 
-    setMessages((prev) => [...prev, userMessage, thinkingMessage]);
+    setMessages((prev) => [...prev, userMessage, assistantMessage]);
     setInput("");
     setIsLoading(true);
     setError(null);
@@ -182,7 +182,7 @@ export default function ChatPanel({
         body: JSON.stringify({
           message: input,
           history: messages
-            .filter((m) => !m.isThinking)
+            .filter((m) => m.role !== "assistant" || m.content) // only real messages
             .map((m) => ({
               user_message: m.role === "user" ? m.content : "",
               ai_response: m.role === "assistant" ? m.content : "",
@@ -196,41 +196,63 @@ export default function ChatPanel({
         throw new Error(`API error: ${response.status}`);
       }
 
-      const data = await response.json();
+      // Streaming response handling
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
+      let accumulated = "";
 
-      // Replace thinking message with actual response
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === thinkingMessage.id
-            ? {
-                ...msg,
-                id: Date.now().toString(),
-                content: data.response,
-                isThinking: false,
-              }
-            : msg
-        )
-      );
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split("\n");
+
+        for (const line of lines) {
+          if (line.trim() === "" || !line.startsWith("data: ")) continue;
+
+          const data = line.slice(6).trim();
+          if (data === "[DONE]") continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            // Backend mostly "response" field bhejta hai
+            if (parsed.response) {
+              accumulated += parsed.response;
+            } else if (typeof parsed === "string") {
+              accumulated += parsed;
+            }
+          } catch (e) {
+            // Agar JSON nahi parse hua to direct text (rare)
+            accumulated += data;
+          }
+
+          // Real-time UI update
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId
+                ? { ...msg, content: accumulated }
+                : msg
+            )
+          );
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to send message");
-      // Remove the thinking message on error
-      setMessages((prev) =>
-        prev.filter((msg) => msg.id !== thinkingMessage.id)
-      );
+      // Remove empty assistant message on error
+      setMessages((prev) => prev.filter((m) => m.id !== assistantMessageId));
     } finally {
       setIsLoading(false);
     }
   };
 
   const retryLastMessage = () => {
-    // Find the last user message and retry
     const lastUserMessage = [...messages]
       .reverse()
       .find((m) => m.role === "user");
     if (lastUserMessage) {
       setError(null);
       setInput(lastUserMessage.content);
-      // Remove the last user message so it can be re-sent
       setMessages((prev) => prev.filter((m) => m.id !== lastUserMessage.id));
     }
   };
@@ -245,7 +267,6 @@ export default function ChatPanel({
   const clearChat = () => {
     setMessages([]);
     setError(null);
-    // Also clear from session storage
     if (typeof window !== "undefined") {
       sessionStorage.removeItem(CHAT_MESSAGES_KEY);
     }
@@ -360,9 +381,8 @@ export default function ChatPanel({
             <div className={styles.messageContent}>
               {message.role === "assistant" ? (
                 <>
-                  <ReactMarkdown>
-                    {message.content || (isLoading ? "Thinking..." : "")}
-                  </ReactMarkdown>
+                  <ReactMarkdown>{message.content}</ReactMarkdown>
+                  {/* Redirect indicator logic remains same */}
                   {message.redirect && (
                     <div
                       className={`${styles.redirectIndicator} ${
